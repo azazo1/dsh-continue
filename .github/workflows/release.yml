@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish. Leave empty to build the selected ref only.
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.tag || '' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      is_release: ${{ steps.resolve.outputs.is_release }}
+      tag_name: ${{ steps.resolve.outputs.tag_name }}
+      source_ref: ${{ steps.resolve.outputs.source_ref }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: resolve
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          is_release=false
+          tag_name=""
+          source_ref="${SHA}"
+          if [[ "${EVENT_NAME}" == "push" && "${REF_TYPE}" == "tag" ]]; then
+            is_release=true
+            tag_name="${REF_NAME}"
+          elif [[ "${EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_TAG}" ]]; then
+            is_release=true
+            tag_name="${INPUT_TAG}"
+          fi
+          if [[ "${is_release}" == true ]]; then
+            git check-ref-format "refs/tags/${tag_name}"
+            git ls-remote --exit-code origin "refs/tags/${tag_name}" >/dev/null
+            git fetch origin "refs/tags/${tag_name}:refs/tags/${tag_name}"
+            git cat-file -e "refs/tags/${tag_name}^{commit}"
+            git checkout --detach "refs/tags/${tag_name}"
+            source_ref="refs/tags/${tag_name}"
+            version="${tag_name#v}"
+            expected="$(node -e 'console.log(JSON.parse(require("fs").readFileSync("package.json", "utf8")).version)')"
+            [[ "${version}" == "${expected}" ]] || {
+              echo "tag ${tag_name} does not match package version ${expected}" >&2
+              exit 1
+            }
+            [[ -s "docs/changelog/${version}.md" ]] || {
+              echo "missing release notes docs/changelog/${version}.md" >&2
+              exit 1
+            }
+          else
+            version=""
+          fi
+          {
+            echo "is_release=${is_release}"
+            echo "tag_name=${tag_name}"
+            echo "source_ref=${source_ref}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
+
+  build:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.source_ref }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run build
+      - name: Pack plugin
+        run: pnpm pack --pack-destination dist
+      - name: Verify package artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/dsh-continue-*.tgz)
+          [[ "${#files[@]}" -eq 1 ]] || {
+            echo "expected exactly one package archive, found ${#files[@]}" >&2
+            exit 1
+          }
+          test -s "${files[0]}"
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-continue-${{ needs.version.outputs.version || github.sha }}
+          path: dist/dsh-continue-*.tgz
+          if-no-files-found: error
+
+  release:
+    if: needs.version.outputs.is_release == 'true'
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.version.outputs.tag_name }}
+          fetch-depth: 0
+      - name: Refetch exact tag object
+        env:
+          TAG: ${{ needs.version.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          [[ "$(git cat-file -t "refs/tags/${TAG}")" == tag ]] || {
+            echo "${TAG} is not an annotated tag" >&2
+            exit 1
+          }
+          git cat-file -e "refs/tags/${TAG}^{commit}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-continue-${{ needs.version.outputs.version }}
+          path: dist
+      - name: Verify annotated tag and release notes
+        shell: bash
+        env:
+          TAG: ${{ needs.version.outputs.tag_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          notes="docs/changelog/${VERSION}.md"
+          annotation="$(mktemp)"
+          git cat-file tag "refs/tags/${TAG}" | sed '1,/^$/d' > "${annotation}"
+          cmp -- "${annotation}" "${notes}"
+      - name: Create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(dist/dsh-continue-*.tgz)
+          [[ "${#archives[@]}" -eq 1 ]] || {
+            echo "expected exactly one archive before release" >&2
+            exit 1
+          }
+          sha256sum "${archives[0]}" > dist/SHA256SUMS
+          release_files=(dist/dsh-continue-*.tgz dist/SHA256SUMS)
+          [[ "${#release_files[@]}" -eq 2 ]] || exit 1
+      - name: Generate release notes supplement
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          target_commit="$(git rev-parse HEAD)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="${TAG}" \
+            -f target_commitish="${target_commit}" > generated-notes.json
+          jq -r '.body // empty' generated-notes.json > generated-notes.md
+          printf '\n---\n\n' >> generated-notes.md
+          cat generated-notes.md >> "docs/changelog/${{ needs.version.outputs.version }}.md"
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          title="dsh-continue v${VERSION}"
+          notes="docs/changelog/${VERSION}.md"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --title "${title}" --notes-file "${notes}"
+          else
+            gh release create "${TAG}" --verify-tag --title "${title}" --notes-file "${notes}" --latest
+          fi
+          gh release upload "${TAG}" dist/dsh-continue-*.tgz dist/SHA256SUMS --clobber
