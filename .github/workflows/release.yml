@@ -54,7 +54,7 @@ jobs:
           if [[ "${is_release}" == true ]]; then
             git check-ref-format "refs/tags/${tag_name}"
             git ls-remote --exit-code origin "refs/tags/${tag_name}" >/dev/null
-            git fetch origin "refs/tags/${tag_name}:refs/tags/${tag_name}"
+            git fetch --force origin "refs/tags/${tag_name}:refs/tags/${tag_name}"
             git cat-file -e "refs/tags/${tag_name}^{commit}"
             git checkout --detach "refs/tags/${tag_name}"
             source_ref="refs/tags/${tag_name}"
@@ -132,7 +132,7 @@ jobs:
           TAG: ${{ needs.version.outputs.tag_name }}
         run: |
           set -euo pipefail
-          git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          git fetch --force origin "refs/tags/${TAG}:refs/tags/${TAG}"
           [[ "$(git cat-file -t "refs/tags/${TAG}")" == tag ]] || {
             echo "${TAG} is not an annotated tag" >&2
             exit 1
