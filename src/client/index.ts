@@ -2,11 +2,10 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings-general/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { createElement } from 'react'
-import type { ContinueSettings } from '../shared.ts'
+import { SETTINGS_NAMESPACE, type ContinueSettings } from '../shared.ts'
 import { ContinueButton } from './ContinueButton.tsx'
 import { ContinueSetting } from './ContinueSetting.tsx'
 import { decodeContinueSettings } from './settings.ts'
@@ -17,13 +16,13 @@ export const inject = ['slots', 'locale', 'settingsScope']
 type InputRightProps = PropsRuntime<'conversation.input.right'> & {
   scope: SettingsScope<ContinueSettings>
 }
-type SettingProps = PropsRuntime<'settings.general.item'> & PropsLocale<'dsh-continue'> & {
+type SettingProps = PropsLocale<'dsh-continue'> & {
   scope: SettingsScope<ContinueSettings>
 }
 
 export function apply(ctx: ClientContext): void {
   const scope = ctx.settingsScope.bind({
-    namespace: 'dsh-continue',
+    namespace: SETTINGS_NAMESPACE,
     decode: decodeContinueSettings,
   })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-continue: dictionaries')
