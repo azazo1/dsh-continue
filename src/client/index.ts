@@ -17,7 +17,7 @@ export function apply(ctx: ClientContext): void {
     (props: InputRightProps) => createElement(ContinueButton, props),
   ))
   ctx.slots.inject('settings.general.item', () => ctx.slots.register(
-    { name: 'settings.general.item', id: 'dsh-continue', order: -30 },
+    { name: 'settings.general.item', id: 'dsh-continue' },
     (_props: SettingProps) => createElement(ContinueSetting, null),
   ))
 }

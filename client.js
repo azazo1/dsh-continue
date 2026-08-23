@@ -17,13 +17,13 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var styles_module_css_default = {
-			"settingCopy": "opUrQG_settingCopy",
-			"settingDescription": "opUrQG_settingDescription",
+			"continueIcon": "opUrQG_continueIcon",
 			"continueAction": "opUrQG_continueAction",
 			"settingRow": "opUrQG_settingRow",
+			"settingTitle": "opUrQG_settingTitle",
+			"settingDescription": "opUrQG_settingDescription",
 			"settingInput": "opUrQG_settingInput",
-			"continueIcon": "opUrQG_continueIcon",
-			"settingTitle": "opUrQG_settingTitle"
+			"settingCopy": "opUrQG_settingCopy"
 		};
 		//#endregion
 		//#region src/client/ContinueButton.tsx
@@ -86,8 +86,7 @@ window.__ModuleLoader__.load({
 			}, (props) => (0, react.createElement)(ContinueButton, props)));
 			ctx.slots.inject("settings.general.item", () => ctx.slots.register({
 				name: "settings.general.item",
-				id: "dsh-continue",
-				order: -30
+				id: "dsh-continue"
 			}, (_props) => (0, react.createElement)(ContinueSetting, null)));
 		}
 		//#endregion
