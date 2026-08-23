@@ -17,12 +17,18 @@ importers:
       '@deepseek-ai/dsh-agent-presets':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(c61da10b37997a0dffc1aedc219daaf2)
+      '@deepseek-ai/dsh-client-locale':
+        specifier: ^0.1.0-rc.6
+        version: 0.1.0-rc.8(86e16fe7bdb0cdc3694c80972d09e7f7)
       '@deepseek-ai/dsh-client-runtime':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(d60c775270b822deee6b25449def3bb9)
       '@deepseek-ai/dsh-client-ui-conversation':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(ff11700d6883cc7fa1f4a6335c172bdf)
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: ^0.1.0-rc.6
+        version: 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-api-remotes@0.1.0-rc.8(3efff7030edd34682350922988afd2c1))(@deepseek-ai/dsh-client-connection@0.1.0-rc.8)(@deepseek-ai/dsh-client-runtime@0.1.0-rc.8(d60c775270b822deee6b25449def3bb9))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-settings@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/schemastery@3.18.1))
       '@deepseek-ai/dsh-client-ui-settings-general':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(112cac6ce57459af256767957cce827e)
@@ -38,9 +44,15 @@ importers:
       '@deepseek-ai/dsh-session-query':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(e87dfefb8b6f6903ab3a7d4d893e4616)
+      '@deepseek-ai/dsh-settings':
+        specifier: ^0.1.0-rc.6
+        version: 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/schemastery@3.18.1)
       '@deepseek-ai/dsh-workspace':
         specifier: ^0.1.0-rc.6
         version: 0.1.0-rc.8(b22e0d48f5e81af272cd56aac64d0d48)
+      '@deepseek-ai/schemastery':
+        specifier: ^3.18.1
+        version: 3.18.1
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31
