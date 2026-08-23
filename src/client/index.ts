@@ -32,7 +32,7 @@ export function apply(ctx: ClientContext): void {
     (props: InputRightProps) => createElement(ContinueButton, props),
   ))
   ctx.slots.inject('settings.general.item', () => ctx.slots.register(
-    { name: 'settings.general.item', id: 'dsh-continue', inject: () => ({ scope }), locale: NS },
+    { name: 'settings.general.item', id: 'dsh-continue', order: 100, inject: () => ({ scope }), locale: NS },
     (_props: SettingProps) => createElement(ContinueSetting, _props),
   ))
 }
