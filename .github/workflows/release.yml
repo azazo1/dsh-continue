@@ -52,6 +52,10 @@ jobs:
             tag_name="${INPUT_TAG}"
           fi
           if [[ "${is_release}" == true ]]; then
+            [[ "${tag_name}" == v* ]] || {
+              echo "release tag must use the v prefix: ${tag_name}" >&2
+              exit 1
+            }
             git check-ref-format "refs/tags/${tag_name}"
             git ls-remote --exit-code origin "refs/tags/${tag_name}" >/dev/null
             git fetch --force origin "refs/tags/${tag_name}:refs/tags/${tag_name}"
