@@ -13,8 +13,7 @@ const PLATFORM_MODULES = [
   '@deepseek-ai/dsh-client-web-react',
   '@deepseek-ai/dsh-client-ui-primitives',
 ]
-const RUNTIME = '@deepseek-ai/dsh-client-runtime/client'
-const EXTERNALS = [...PLATFORM_MODULES, RUNTIME]
+const EXTERNALS = [...PLATFORM_MODULES]
 const CSS_PREFIX = '\0dsh-css:'
 const CSS_SUFFIX = '.mjs'
 

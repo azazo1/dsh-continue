@@ -22,18 +22,20 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var styles_module_css_default = {
-			"continueIcon": "opUrQG_continueIcon",
 			"settingDescription": "opUrQG_settingDescription",
 			"settingTitle": "opUrQG_settingTitle",
-			"continueAction": "opUrQG_continueAction",
-			"settingRow": "opUrQG_settingRow",
+			"continueIcon": "opUrQG_continueIcon",
 			"settingCopy": "opUrQG_settingCopy",
-			"settingInput": "opUrQG_settingInput"
+			"settingInput": "opUrQG_settingInput",
+			"continueAction": "opUrQG_continueAction",
+			"settingRow": "opUrQG_settingRow"
 		};
 		//#endregion
 		//#region src/client/ContinueButton.tsx
-		function ContinueButton({ input, inputActions, session, scope }) {
-			if (input.draft.trim().length !== 0 || session.running) return null;
+		function ContinueButton({ useInput, useSession, inputActions, scope }) {
+			const draft = useInput((s) => s.draft);
+			const running = useSession((s) => s.running);
+			if (draft.trim().length !== 0 || running) return null;
 			const send = () => {
 				const message = scope.getSnapshot().value?.continueMessage ?? "继续";
 				inputActions.setDraft(message);
@@ -53,8 +55,16 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region src/client/ContinueSetting.tsx
+		function readContinueMessage(scope) {
+			return scope.getSnapshot().value?.continueMessage ?? "继续";
+		}
 		function ContinueSetting({ scope, t }) {
-			const message = (0, react.useSyncExternalStore)((onChange) => scope.subscribe(onChange), () => scope.getSnapshot().value?.continueMessage ?? "");
+			const persisted = (0, react.useSyncExternalStore)((onChange) => scope.subscribe(onChange), () => readContinueMessage(scope));
+			const [draft, setDraft] = (0, react.useState)(persisted);
+			const focusedRef = (0, react.useRef)(false);
+			(0, react.useEffect)(() => {
+				if (!focusedRef.current) setDraft(persisted);
+			}, [persisted]);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: styles_module_css_default.settingRow,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
@@ -69,11 +79,20 @@ window.__ModuleLoader__.load({
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
 					className: styles_module_css_default.settingInput,
 					type: "text",
-					value: message,
-					placeholder: "继续",
+					value: draft,
+					placeholder: DEFAULT_CONTINUE_MESSAGE,
 					"aria-label": t("settings.continueMessage.title"),
+					onFocus: () => {
+						focusedRef.current = true;
+					},
 					onChange: (event) => {
-						scope.set("continueMessage", event.currentTarget.value);
+						const next = event.currentTarget.value;
+						setDraft(next);
+						scope.set(CONTINUE_MESSAGE_FIELD, next);
+					},
+					onBlur: () => {
+						focusedRef.current = false;
+						setDraft(readContinueMessage(scope));
 					}
 				})]
 			});

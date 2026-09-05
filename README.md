@@ -11,6 +11,10 @@
 - 插件只使用 `conversation.input.right` 和 `settings.general.item` 两个 additive Slot.
 - Agent 工作期间自动隐藏继续按钮.
 
+## 兼容性
+
+适配 DSH `0.1.2-rc.1` 及同系列更新版本.
+
 ## 安装
 
 ```shell

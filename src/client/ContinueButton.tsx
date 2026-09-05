@@ -1,4 +1,4 @@
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContinueSettings } from '../shared.ts'
 import styles from './styles.module.css'
@@ -7,8 +7,10 @@ export type ContinueButtonProps = PropsRuntime<'conversation.input.right'> & {
   scope: SettingsScope<ContinueSettings>
 }
 
-export function ContinueButton({ input, inputActions, session, scope }: ContinueButtonProps): React.ReactNode {
-  if (input.draft.trim().length !== 0 || session.running) return null
+export function ContinueButton({ useInput, useSession, inputActions, scope }: ContinueButtonProps): React.ReactNode {
+  const draft = useInput(s => s.draft)
+  const running = useSession(s => s.running)
+  if (draft.trim().length !== 0 || running) return null
 
   const send = (): void => {
     const message = scope.getSnapshot().value?.continueMessage ?? '继续'

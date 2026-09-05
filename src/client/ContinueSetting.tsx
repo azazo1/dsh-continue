@@ -1,18 +1,33 @@
-import { useSyncExternalStore } from 'react'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ContinueSettings } from '../shared.ts'
+import {
+  CONTINUE_MESSAGE_FIELD,
+  DEFAULT_CONTINUE_MESSAGE,
+  type ContinueSettings,
+} from '../shared.ts'
 import styles from './styles.module.css'
 
 export type ContinueSettingProps = PropsLocale<'dsh-continue'> & {
   scope: SettingsScope<ContinueSettings>
 }
 
+function readContinueMessage(scope: SettingsScope<ContinueSettings>): string {
+  return scope.getSnapshot().value?.continueMessage ?? DEFAULT_CONTINUE_MESSAGE
+}
+
 export function ContinueSetting({ scope, t }: ContinueSettingProps): React.ReactNode {
-  const message = useSyncExternalStore(
+  const persisted = useSyncExternalStore(
     (onChange) => scope.subscribe(onChange),
-    () => scope.getSnapshot().value?.continueMessage ?? '',
+    () => readContinueMessage(scope),
   )
+  const [draft, setDraft] = useState(persisted)
+  const focusedRef = useRef(false)
+
+  // Host 写入是异步的, 输入中不要用回写值覆盖 draft, 否则光标会被打到末尾.
+  useEffect(() => {
+    if (!focusedRef.current) setDraft(persisted)
+  }, [persisted])
 
   return (
     <div className={styles.settingRow}>
@@ -23,11 +38,20 @@ export function ContinueSetting({ scope, t }: ContinueSettingProps): React.React
       <input
         className={styles.settingInput}
         type="text"
-        value={message}
-        placeholder="继续"
+        value={draft}
+        placeholder={DEFAULT_CONTINUE_MESSAGE}
         aria-label={t('settings.continueMessage.title')}
+        onFocus={() => {
+          focusedRef.current = true
+        }}
         onChange={(event) => {
-          void scope.set('continueMessage', event.currentTarget.value)
+          const next = event.currentTarget.value
+          setDraft(next)
+          void scope.set(CONTINUE_MESSAGE_FIELD, next)
+        }}
+        onBlur={() => {
+          focusedRef.current = false
+          setDraft(readContinueMessage(scope))
         }}
       />
     </div>
