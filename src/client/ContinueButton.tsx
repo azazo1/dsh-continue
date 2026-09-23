@@ -1,4 +1,4 @@
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm as SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContinueSettings } from '../shared.ts'
 import styles from './styles.module.css'
@@ -8,8 +8,8 @@ export type ContinueButtonProps = PropsRuntime<'conversation.input.right'> & {
 }
 
 export function ContinueButton({ useInput, useSession, inputActions, scope }: ContinueButtonProps): React.ReactNode {
-  const draft = useInput(s => s.draft)
-  const running = useSession(s => s.running)
+  const draft = useInput((s: { draft: string }) => s.draft)
+  const running = useSession((s: { running: boolean }) => s.running)
   if (draft.trim().length !== 0 || running) return null
 
   const send = (): void => {

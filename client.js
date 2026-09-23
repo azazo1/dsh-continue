@@ -22,13 +22,13 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var styles_module_css_default = {
-			"settingDescription": "opUrQG_settingDescription",
-			"settingTitle": "opUrQG_settingTitle",
-			"continueIcon": "opUrQG_continueIcon",
-			"settingCopy": "opUrQG_settingCopy",
 			"settingInput": "opUrQG_settingInput",
 			"continueAction": "opUrQG_continueAction",
-			"settingRow": "opUrQG_settingRow"
+			"continueIcon": "opUrQG_continueIcon",
+			"settingRow": "opUrQG_settingRow",
+			"settingTitle": "opUrQG_settingTitle",
+			"settingDescription": "opUrQG_settingDescription",
+			"settingCopy": "opUrQG_settingCopy"
 		};
 		//#endregion
 		//#region src/client/ContinueButton.tsx
@@ -98,13 +98,6 @@ window.__ModuleLoader__.load({
 			});
 		}
 		//#endregion
-		//#region src/client/settings.ts
-		function decodeContinueSettings(section) {
-			if (typeof section !== "object" || section === null) return void 0;
-			const value = section[CONTINUE_MESSAGE_FIELD];
-			return typeof value === "string" ? { continueMessage: value } : { continueMessage: DEFAULT_CONTINUE_MESSAGE };
-		}
-		//#endregion
 		//#region src/client/locales.ts
 		const zh = {
 			"settings.continueMessage.title": "继续消息",
@@ -120,13 +113,10 @@ window.__ModuleLoader__.load({
 		const inject = [
 			"slots",
 			"locale",
-			"settingsScope"
+			"configForms"
 		];
 		function apply(ctx) {
-			const scope = ctx.settingsScope.bind({
-				namespace: SETTINGS_NAMESPACE,
-				decode: decodeContinueSettings
-			});
+			const scope = ctx.configForms.get(SETTINGS_NAMESPACE);
 			ctx.effect(() => ctx.locale.register(NS, {
 				zh,
 				en
