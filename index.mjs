@@ -886,7 +886,9 @@ defineMethod("transform", [
 ], ({ inner }, isInner) => inner.toString(isInner));
 //#endregion
 //#region src/shared.ts
+/** 继续消息字段名, 与 Host Config 的 volatile 键一致. */
 const CONTINUE_MESSAGE_FIELD = "continueMessage";
+/** 输入框为空时继续按钮发送的默认内容. */
 const DEFAULT_CONTINUE_MESSAGE = "继续";
 //#endregion
 //#region src/index.ts
