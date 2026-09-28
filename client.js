@@ -28,8 +28,8 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var styles_module_css_default = {
-			"continueAction": "opUrQG_continueAction",
-			"continueIcon": "opUrQG_continueIcon"
+			"continueIcon": "opUrQG_continueIcon",
+			"continueAction": "opUrQG_continueAction"
 		};
 		//#endregion
 		//#region src/client/ContinueButton.tsx
