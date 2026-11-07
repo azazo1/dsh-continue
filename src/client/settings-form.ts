@@ -8,7 +8,7 @@ import {
   SettingsFormModel, settingsTextField,
   type SettingsFieldState, type SettingsFormActions, type SettingsFormScope, type SettingsFormShell,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { CONTINUE_MESSAGE_FIELD, type ContinueSettings } from '../shared.ts'
+import { CONTINUE_MESSAGE_FIELD, type ContinueClientSettings } from '../shared.ts'
 
 /** 卡片读到的状态. */
 export interface ContinueCardState extends SettingsFormShell {
@@ -26,13 +26,13 @@ export interface ContinueCardFace extends SettingsFormActions {
 
 /** 把本插件条目的配置表单桥接成卡片页的暂存表单. */
 export class ContinueSettingsForm {
-  private readonly form: SettingsFormModel<ContinueSettings>
+  private readonly form: SettingsFormModel<ContinueClientSettings>
   private readonly store: SnapshotStore<ContinueCardState>
 
   /**
    * @param scope - 本插件 profile 条目的共享配置表单 (ctx.configForms.get).
    */
-  constructor(scope: SettingsFormScope<ContinueSettings>) {
+  constructor(scope: SettingsFormScope<ContinueClientSettings>) {
     this.form = new SettingsFormModel(scope, [settingsTextField(CONTINUE_MESSAGE_FIELD)])
     this.store = this.form.bind(() => ({
       ...this.form.shell(),

@@ -7,9 +7,18 @@
 - 保留 DSH 原来的输入框和发送按钮.
 - 输入框为空且 Agent 没有工作时, 在发送按钮旁显示圆形播放三角按钮.
 - 点击按钮发送配置中的继续消息.
+- 继续消息由 Host 直接插到待发队列最前面, 排队中的旧消息不会被带进这一轮, 仍按原顺序留在后面.
 - 设置入口位于设置 > 通用, 配置项使用原生设置行样式.
 - 插件只使用 `conversation.input.right` 和 `settings.general.item` 两个 additive Slot.
 - Agent 工作期间自动隐藏继续按钮.
+
+## 实现
+
+继续按钮不再复用输入框的提交路径, 而是 POST 到 Host 注册的 `/api/dsh-continue/continue`.
+
+原因是 DSH 每轮第一个 step 都会领走待发队列的首条消息: 如果继续消息走普通提交, 排队中的旧消息会抢在它前面被这一轮领走. Host 侧把继续消息 prepend 到队首, 再用一条占位消息唤醒 driver 并立刻移除, 这一轮领到的就是继续消息本身.
+
+路由挂在 `/api` 下, 因此 Host/Origin 校验和浏览器凭据校验都由 DSH 的 connection 层完成, 并且 exact fetch 路由只对 owner principal 开放.
 
 ## 兼容性
 

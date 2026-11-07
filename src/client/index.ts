@@ -8,7 +8,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { createElement } from 'react'
-import { ENTRY_ID, PLUGIN_ID, type ContinueSettings } from '../shared.ts'
+import { ENTRY_ID, PLUGIN_ID, type ContinueClientSettings } from '../shared.ts'
 import { ContinueButton } from './ContinueButton.tsx'
 import { ContinueSettingsCard } from './settings-card.tsx'
 import { ContinueSettingsForm } from './settings-form.ts'
@@ -17,11 +17,11 @@ import { en, NS, zh } from './locales.ts'
 export const inject = ['slots', 'locale', 'configForms']
 
 type InputRightProps = PropsRuntime<'conversation.input.right'> & {
-  scope: SettingsScope<ContinueSettings>
+  scope: SettingsScope<ContinueClientSettings>
 }
 
 export function apply(ctx: ClientContext): void {
-  const scope = ctx.configForms.get<ContinueSettings>(ENTRY_ID)
+  const scope = ctx.configForms.get<ContinueClientSettings>(ENTRY_ID)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-continue: dictionaries')
 
   // 输入框右侧的继续按钮与插件页配置卡片共享同一份条目表单.

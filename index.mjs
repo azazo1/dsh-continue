@@ -885,15 +885,216 @@ defineMethod("transform", [
 	"preserve"
 ], ({ inner }, isInner) => inner.toString(isInner));
 //#endregion
+//#region node_modules/.pnpm/@deepseek-ai+dsh-util-crypto@0.2.0-rc.2_@deepseek-ai+cordis@4.0.4/node_modules/@deepseek-ai/dsh-util-crypto/lib/index.js
+/**
+* Random v4 UUID, minted from `crypto.getRandomValues`.
+* @returns the UUID string.
+*/
+function randomUUID() {
+	const bytes = globalThis.crypto.getRandomValues(/* @__PURE__ */ new Uint8Array(16));
+	const hex = Array.from(bytes, (byte, index) => {
+		return (index === 6 ? byte & 15 | 64 : index === 8 ? byte & 63 | 128 : byte).toString(16).padStart(2, "0");
+	}).join("");
+	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+//#endregion
+//#region node_modules/.pnpm/@deepseek-ai+dsh-brand@0.2.0-rc.2_@deepseek-ai+cordis@4.0.4/node_modules/@deepseek-ai/dsh-brand/lib/index.js
+/**
+* Duplicate-install-safe nominal primitive helpers.
+*
+* A brand makes structurally identical strings or numbers non-interchangeable
+* at the type level: a `SessionId` cannot be passed where a `ToolCallId` is
+* expected, and an event sequence cannot be passed as a log offset. Comparison,
+* logging, and serialization retain the underlying primitive behavior.
+*
+* This package owns no concrete domain value and keeps no runtime identity or mutable
+* state, so independently installed copies produce interchangeable values.
+*
+* @module @deepseek-ai/dsh-brand
+*/
+/**
+* Apply a compile-time string brand without changing the value.
+* @param value - string admitted by the domain that owns the target brand.
+* @returns the same string with the requested compile-time brand.
+*/
+function brandString(value) {
+	return value;
+}
+//#endregion
+//#region node_modules/.pnpm/@deepseek-ai+dsh-util-values@0.2.0-rc.2_@deepseek-ai+cordis@4.0.4/node_modules/@deepseek-ai/dsh-util-values/lib/index.js
+/**
+* Deep-freeze an object graph in place while leaving live AbortSignal objects mutable.
+* @param value - value to freeze.
+* @returns the same value after every reachable enumerable child is frozen.
+*/
+function deepFreeze(value) {
+	const seen = /* @__PURE__ */ new WeakSet();
+	const pending = [{
+		kind: "visit",
+		node: value
+	}];
+	while (pending.length > 0) {
+		const task = pending.pop();
+		/* v8 ignore next -- the loop condition guarantees one pending task. */
+		if (task === void 0) continue;
+		if (task.kind === "property") {
+			pending.push({
+				kind: "visit",
+				node: task.source[task.key]
+			});
+			continue;
+		}
+		const node = task.node;
+		if (node === null || typeof node !== "object") continue;
+		if (node instanceof AbortSignal) continue;
+		if (seen.has(node)) continue;
+		seen.add(node);
+		Object.freeze(node);
+		const keys = Object.keys(node);
+		for (let index = keys.length - 1; index >= 0; index--) {
+			const key = keys[index];
+			/* v8 ignore next -- the loop is bounded by the captured key count. */
+			if (key === void 0) continue;
+			pending.push({
+				kind: "property",
+				source: node,
+				key
+			});
+		}
+	}
+	return value;
+}
+//#endregion
+//#region node_modules/.pnpm/@deepseek-ai+dsh-llm@0.2.0-rc.2_@deepseek-ai+cordis@4.0.4/node_modules/@deepseek-ai/dsh-llm/lib/types/message.js
+/** Message value types, identity, and immutable construction helpers. */
+/**
+* Create one identified message and freeze it before publication.
+* @param input - complete role, content, and source for a new message.
+* @returns an immutable message with a fresh stable identity.
+*/
+function createMessage(input) {
+	return deepFreeze(structuredClone({
+		...input,
+		id: brandString(randomUUID())
+	}));
+}
+/**
+* Create one identified user-role message and freeze it before publication.
+* @param input - complete content and source for a new user message.
+* @returns an immutable user message with a fresh stable identity.
+*/
+function createUserMessage(input) {
+	return createMessage({
+		...input,
+		role: "user"
+	});
+}
+//#endregion
 //#region src/shared.ts
 /** 继续消息字段名, 与 Host Config 的 volatile 键一致. */
 const CONTINUE_MESSAGE_FIELD = "continueMessage";
 /** 输入框为空时继续按钮发送的默认内容. */
 const DEFAULT_CONTINUE_MESSAGE = "继续";
+/**
+* Host 侧继续路由的绝对路径.
+*
+* 必须落在 `/api` 下: dsh 的 connection 层只给 `/api` 通道做 Host/Origin 与
+* 浏览器凭据校验, 并且 exact fetch 路由只对 owner principal 开放, 其他请求
+* 一律 403. 放在别的前缀下这条路由就是完全没有鉴权的裸接口.
+*/
+const CONTINUE_PATH = "/api/dsh-continue/continue";
+//#endregion
+//#region src/continue-route.ts
+/**
+* 构造一条用户消息.
+* @param text - 消息文本.
+* @returns 可放进 inbox 的用户消息.
+*/
+function userMessage(text) {
+	return createUserMessage({
+		content: [{
+			type: "text",
+			text
+		}],
+		source: { kind: "user" }
+	});
+}
+/** 解析并校验请求体. */
+async function readContinueRequest(request) {
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return;
+	}
+	if (typeof body !== "object" || body === null) return void 0;
+	const sessionId = body.sessionId;
+	if (typeof sessionId !== "string" || sessionId.trim() === "") return void 0;
+	return { sessionId };
+}
+/** 统一返回 JSON. */
+function json(status, body) {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { "content-type": "application/json" }
+	});
+}
+/**
+* 把继续消息插到 `next-turn` 队首并唤醒 Agent.
+*
+* 空闲时 followup 会在返回前同步领走队首, 占位消息因此留在队列里轮不到被领走,
+* 直接移除即可; 工作中或维护中时唤醒被挂起, 占位消息同样在唤醒前被移除, 挂起
+* 的唤醒仍会因队列里还有继续消息而生效.
+* @param ctx - Host 插件上下文, 仅用于告警.
+* @param agent - 目标 Agent.
+* @param text - 继续消息文本.
+*/
+function enqueueContinue(ctx, agent, text) {
+	agent.inbox.prepend("next-turn", userMessage(text));
+	const wake = userMessage("");
+	agent.followup(wake);
+	if (!agent.inbox.remove(wake.id)) ctx.logger.warn(`dsh-continue: the wake placeholder for "${agent.id}" was already claimed`);
+}
+/**
+* 注册继续路由.
+* @param ctx - Host 插件上下文.
+* @param config - 插件配置.
+*/
+function registerContinueRoute(ctx, config) {
+	ctx.effect(() => ctx.connection.fetch.register({
+		path: CONTINUE_PATH,
+		methods: ["POST"],
+		requestBody: "buffered",
+		fetch: async (request) => {
+			const parsed = await readContinueRequest(request);
+			if (parsed === void 0) return json(400, { error: "invalid request body" });
+			const agent = ctx.agents.get(parsed.sessionId);
+			if (agent === void 0) return json(404, { error: "session is not attached" });
+			const text = config.continueMessage.get().trim();
+			if (text === "") return json(400, { error: "continue message is empty" });
+			try {
+				enqueueContinue(ctx, agent, text);
+			} catch (error) {
+				ctx.logger.warn(`dsh-continue: could not enqueue the continue message for "${parsed.sessionId}": ${String(error)}`);
+				return json(500, { error: "could not enqueue the continue message" });
+			}
+			return json(200, { ok: true });
+		}
+	}), `dsh-continue: POST ${CONTINUE_PATH}`);
+}
 //#endregion
 //#region src/index.ts
 const name = "dsh-continue";
+/** Host 侧需要 dsh 的 connection (鉴权路由) 与 agents (队列操作) 服务. */
+const inject = ["connection", "agents"];
 const Config = Schema.object({ [CONTINUE_MESSAGE_FIELD]: Schema.string().default(DEFAULT_CONTINUE_MESSAGE).volatile() });
-function apply(_ctx) {}
+/**
+* 注册继续路由.
+* @param ctx - Host 插件上下文.
+* @param config - 插件配置, 字段为 volatile 引用.
+*/
+function apply(ctx, config) {
+	registerContinueRoute(ctx, config);
+}
 //#endregion
-export { Config, apply, name };
+export { Config, apply, inject, name };

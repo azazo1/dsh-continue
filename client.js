@@ -16,6 +16,14 @@ window.__ModuleLoader__.load({
 		const CONTINUE_MESSAGE_FIELD = "continueMessage";
 		/** 输入框为空时继续按钮发送的默认内容. */
 		const DEFAULT_CONTINUE_MESSAGE = "继续";
+		/**
+		* Host 侧继续路由的绝对路径.
+		*
+		* 必须落在 `/api` 下: dsh 的 connection 层只给 `/api` 通道做 Host/Origin 与
+		* 浏览器凭据校验, 并且 exact fetch 路由只对 owner principal 开放, 其他请求
+		* 一律 403. 放在别的前缀下这条路由就是完全没有鉴权的裸接口.
+		*/
+		const CONTINUE_PATH = "/api/dsh-continue/continue";
 		//#endregion
 		//#region \0dsh-css:/Users/azazo1/pjs/dsh-plugins/dsh-continue/src/client/styles.module.css.mjs
 		const css = ".opUrQG_continueAction{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:50%;justify-content:center;align-items:center;width:28px;height:28px;padding:0;display:inline-flex}.opUrQG_continueAction:hover{background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}.opUrQG_continueAction:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}.opUrQG_continueIcon{border-top:5px solid #0000;border-bottom:5px solid #0000;border-left:7px solid;width:0;height:0;margin-left:1px}";
@@ -28,25 +36,49 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var styles_module_css_default = {
-			"continueIcon": "opUrQG_continueIcon",
-			"continueAction": "opUrQG_continueAction"
+			"continueAction": "opUrQG_continueAction",
+			"continueIcon": "opUrQG_continueIcon"
 		};
 		//#endregion
 		//#region src/client/ContinueButton.tsx
-		function ContinueButton({ useInput, useSession, inputActions, scope }) {
+		/**
+		* 请求 Host 投递一条继续消息.
+		*
+		* 继续消息由 Host 直接插到 `next-turn` 队首再唤醒 Agent, 因此不会把排队中的
+		* 旧消息带到这一轮前面. 鉴权由 dsh 的 connection 层处理, 这里只需带上会话.
+		* @param sessionId - 当前会话.
+		* @returns 是否投递成功.
+		*/
+		async function postContinue(sessionId) {
+			try {
+				return (await fetch(CONTINUE_PATH, {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ sessionId })
+				})).ok;
+			} catch {
+				return false;
+			}
+		}
+		function ContinueButton({ useInput, useSession, inputActions: _inputActions, scope }) {
 			const draft = useInput((s) => s.draft);
 			const running = useSession((s) => s.running);
-			if (draft.trim().length !== 0 || running) return null;
+			const sessionId = useSession((s) => s.sessionId);
+			const [busy, setBusy] = (0, react.useState)(false);
+			if (draft.trim().length !== 0 || running || busy) return null;
 			const send = () => {
-				const message = scope.getSnapshot().value?.continueMessage ?? "继续";
-				inputActions.setDraft(message);
-				inputActions.submit();
+				if (busy) return;
+				setBusy(true);
+				postContinue(sessionId).finally(() => {
+					setBusy(false);
+				});
 			};
+			const label = scope.getSnapshot().value?.continueMessage ?? "继续";
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 				type: "button",
 				className: styles_module_css_default.continueAction,
-				title: "继续",
-				"aria-label": "继续",
+				title: label,
+				"aria-label": label,
 				onClick: send,
 				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 					className: styles_module_css_default.continueIcon,
